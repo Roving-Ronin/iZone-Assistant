@@ -1,0 +1,29 @@
+name: Release
+
+# Runs when a GitHub release is published. HACS and the Marketplace install
+# from releases, and the release tag must match manifest.json "version".
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    name: Tag matches manifest version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare release tag with manifest.json version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          manifest_version=$(jq -r .version custom_components/izone_assistant/manifest.json)
+          tag_version="${TAG#v}"
+          echo "Release tag: $TAG  manifest version: $manifest_version"
+          if [ "$tag_version" != "$manifest_version" ]; then
+            echo "::error::Release tag '$TAG' does not match manifest.json version '$manifest_version'. Bump manifest.json before releasing."
+            exit 1
+          fi

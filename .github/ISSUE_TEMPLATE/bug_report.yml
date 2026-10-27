@@ -1,0 +1,41 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.11.0"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: iZone Assistant version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: controller
+    attributes:
+      label: iZone controller attributes
+      description: >
+        From Developer Tools → States, the attributes of your iZone controller
+        climate entity, and of one zone climate entity.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >
+        Relevant log lines. To get more detail, add
+        `custom_components.izone_assistant: debug` under `logger:` → `logs:`.
+      render: text

@@ -1,5 +1,11 @@
 # iZone Assistant
 
+<img src="custom_components/izone_assistant/brand/icon.png" alt="iZone Assistant icon" width="96" align="right">
+
+[![Validate](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml/badge.svg)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml)
+[![Tests](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml/badge.svg)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml)
+[![GitHub release](https://img.shields.io/github/v/release/Roving-Ronin/iZone-Assistant)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
+
 Extra sensors and controls for Home Assistant's built-in [iZone integration](https://www.home-assistant.io/integrations/izone/), without hand-written template sensors.
 
 Zones are discovered automatically from your iZone controller: there's nothing to count or name.
@@ -48,11 +54,22 @@ If you previously built these with YAML template sensors using the same IDs (e.g
 
 ## Installation
 
-1. HACS → ⋮ → Custom repositories → add `https://github.com/Roving-Ronin/iZone-Assistant` as an **Integration**.
+The core iZone integration must already be set up.
+
+### HACS or Home Assistant Marketplace
+
+1. Add `https://github.com/Roving-Ronin/iZone-Assistant` as a custom repository of type **Integration** (HACS → ⋮ → Custom repositories, or the equivalent in the Marketplace).
 2. Install **iZone Assistant** and restart Home Assistant.
 3. Settings → Devices & services → Add integration → **iZone Assistant**.
 
-The core iZone integration must already be set up.
+### Manual
+
+Copy `custom_components/izone_assistant` into your Home Assistant `config/custom_components/` folder and restart.
+
+## Requirements
+
+- Home Assistant 2026.2 or newer (tested on 2026.2). The integration's own icon shows from 2026.3 onwards.
+- The core [iZone integration](https://www.home-assistant.io/integrations/izone/), set up and working.
 
 ## Configuration
 
