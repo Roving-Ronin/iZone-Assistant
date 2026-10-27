@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device import async_device_info_to_link_from_entity
+from homeassistant.helpers.device import async_entity_id_to_device
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -137,8 +137,10 @@ class IZoneDerivedEntity(Entity):
         # Suggested entity_id, applied only when the entity is first created.
         # Display names stay device-based ("Study Temperature").
         self.entity_id = f"{self._entity_domain}.{object_prefix}_{OBJECT_SUFFIX[key]}"
-        # Attach to the existing iZone controller / zone device
-        self._attr_device_info = async_device_info_to_link_from_entity(
+        # Show under the existing iZone controller / zone device (and so its area),
+        # the way core helpers do: set device_entry rather than device_info, which
+        # would try to add this config entry to iZone's device.
+        self.device_entry = async_entity_id_to_device(
             hass, device_entity_id or source_entity_id
         )
 

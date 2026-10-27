@@ -166,13 +166,21 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     assert state("sensor.izone_controller_minimum_set_temperature").state == "15.0"
     assert state("sensor.izone_controller_maximum_set_temperature").state == "30.0"
 
-    # Entities attach to the existing iZone devices
+    # Entities sit under the existing iZone devices (so they group and get the area)...
+    ours = _ours(hass)
     dev_reg = dr.async_get(hass)
-    assert dev_reg.async_get(ours["sensor.izone_study_zone_mode"].device_id).name == "Study"
+    study_dev = dev_reg.async_get(ours["sensor.izone_study_zone_mode"].device_id)
+    assert study_dev.name == "Study"
     assert (
         dev_reg.async_get(ours["sensor.izone_controller_outdoor_temperature"].device_id).name
         == f"iZone Controller {UID}"
     )
+    assert all(e.device_id for e in ours.values())
+    # ...with device-based display names...
+    assert state("number.izone_study_airflow_maximum").name == "Study Airflow maximum"
+    assert state("sensor.izone_controller_control_zone").name == f"iZone Controller {UID} Control zone"
+    # ...without adding this integration to iZone's devices
+    assert entry.entry_id not in study_dev.config_entries
 
     # Airflow numbers: default 10-100 limits, safety net and service call
     amax = state("number.izone_study_airflow_maximum")
@@ -279,3 +287,20 @@ async def test_control_zone_and_target_like_real_controller(hass: HomeAssistant)
         set_ctrl(control_zone=idx)
         await hass.async_block_till_done()
         assert state("sensor.izone_controller_control_zone").state == "Unit setpoint"
+
+
+async def test_existing_entities_without_device_get_linked(hass: HomeAssistant) -> None:
+    """Entities created by an earlier version with no device are moved under the zone device."""
+    await _fake_izone(hass)
+    entry = await _setup(hass)
+    ent_reg = er.async_get(hass)
+    eid = "number.izone_study_airflow_maximum"
+    ent_reg.async_update_entity(eid, device_id=None)
+    assert ent_reg.async_get(eid).device_id is None
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    device = dr.async_get(hass).async_get(ent_reg.async_get(eid).device_id)
+    assert device is not None and device.name == "Study"
+    assert hass.states.get(eid).name == "Study Airflow maximum"
