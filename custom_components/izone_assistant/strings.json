@@ -9,7 +9,6 @@
         }
       },
       "zones": {
-        "title": "Zones",
         "description": "iZone - Enable zones that you want to enable:"
       },
       "outdoor": {
