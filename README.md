@@ -83,3 +83,7 @@ If you previously built these with YAML template sensors using the same IDs (e.g
 Both can be changed later from the integration's **Configure** button, which also has an **Airflow limits** step: a floor and ceiling (%) per zone for the airflow controls. Match these to the limits set on your iZone wall panel.
 
 The iZone bridge doesn't report live airflow or damper position, so there is no current-airflow sensor.
+
+## Releasing (maintainers)
+
+Draft a new GitHub release, create a tag such as `v0.3.0` on `main`, and publish. The release workflow takes the version from the tag, writes it into `manifest.json`, attaches `izone_assistant.zip` to the release, and commits the version back to `main`. There's no need to edit `manifest.json` by hand. Mark betas as a pre-release (e.g. `v0.4.0b1`); they don't change the version on `main`.

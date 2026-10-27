@@ -1,16 +1,22 @@
 name: Release
 
-# Runs when a GitHub release is published.
-# 1. Checks the release tag matches manifest.json "version".
-# 2. Builds izone_assistant.zip (the integration folder's contents) and
-#    attaches it to the release. HACS / the Marketplace install from this
-#    zip (hacs.json zip_release), which is what the download badge counts.
+# Runs when a GitHub release is published. The release tag is the version:
+#   1. Takes the version from the tag (v0.3.0 -> 0.3.0).
+#   2. Writes it into manifest.json and builds izone_assistant.zip from the
+#      integration folder, then attaches the zip to the release. HACS / the
+#      Marketplace install from this zip (hacs.json zip_release), which is also
+#      what the download badge counts.
+#   3. Commits the same version bump back to the default branch, so the repo's
+#      manifest.json stays in step. Nobody needs to edit manifest.json by hand.
 on:
   release:
     types: [published]
 
 permissions:
   contents: write
+
+env:
+  MANIFEST: custom_components/izone_assistant/manifest.json
 
 jobs:
   release:
@@ -20,17 +26,23 @@ jobs:
       - name: Check out the release tag
         uses: actions/checkout@v5
 
-      - name: Tag matches manifest.json version
+      - name: Version from the release tag
         env:
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          manifest_version=$(jq -r .version custom_components/izone_assistant/manifest.json)
-          tag_version="${TAG#v}"
-          echo "Release tag: $TAG  manifest version: $manifest_version"
-          if [ "$tag_version" != "$manifest_version" ]; then
-            echo "::error::Release tag '$TAG' does not match manifest.json version '$manifest_version'. Bump manifest.json before releasing."
+          VERSION="${TAG#v}"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-]?(a|b|rc|dev)[0-9]*)?$'; then
+            echo "::error::Release tag '$TAG' isn't a version. Use a tag like v0.3.0 (or 0.3.0, v0.3.0b1)."
             exit 1
           fi
+          echo "Release version: $VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Write the version into manifest.json
+        run: |
+          jq --indent 2 --arg v "$VERSION" '.version = $v' "$MANIFEST" > manifest.tmp
+          mv manifest.tmp "$MANIFEST"
+          grep '"version"' "$MANIFEST"
 
       - name: Build izone_assistant.zip
         run: |
@@ -38,8 +50,39 @@ jobs:
           zip -r -q "$GITHUB_WORKSPACE/izone_assistant.zip" . -x "*/__pycache__/*" "*.pyc"
           cd "$GITHUB_WORKSPACE"
           unzip -l izone_assistant.zip
+          unzip -p izone_assistant.zip manifest.json | grep '"version"'
 
-      - name: Attach to the release
+      - name: Attach the zip to the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" izone_assistant.zip --clobber
+
+  sync-manifest:
+    name: Commit the version to ${{ github.event.repository.default_branch }}
+    needs: release
+    runs-on: ubuntu-latest
+    # Pre-releases (e.g. betas) don't move the default branch's version
+    if: ${{ !github.event.release.prerelease }}
+    steps:
+      - name: Check out the default branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Commit manifest.json version if it changed
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG#v}"
+          jq --indent 2 --arg v "$VERSION" '.version = $v' "$MANIFEST" > manifest.tmp
+          mv manifest.tmp "$MANIFEST"
+          if git diff --quiet -- "$MANIFEST"; then
+            echo "manifest.json already at $VERSION"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Set manifest version to $VERSION (release $TAG)" -- "$MANIFEST"
+          if ! git push -q origin "HEAD:${{ github.event.repository.default_branch }}"; then
+            echo "::warning::Couldn't push the version bump (branch protection?). The release zip is correct; manifest.json on the default branch still shows the old version."
+          fi
