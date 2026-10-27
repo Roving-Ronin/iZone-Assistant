@@ -1,10 +1,13 @@
 {
   "domain": "izone_assistant",
   "name": "iZone Assistant",
-  "categories": ["climate.heat_pumps_air_conditioning"],
-  "codeowners": ["@Roving-Ronin"],
+  "codeowners": [
+    "@Roving-Ronin"
+  ],
   "config_flow": true,
-  "dependencies": ["izone"],
+  "dependencies": [
+    "izone"
+  ],
   "documentation": "https://github.com/Roving-Ronin/iZone-Assistant",
   "integration_type": "helper",
   "iot_class": "calculated",
