@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CLIMATE_STATES, FAN_MODES, HVAC_MODES, ZONE_MODES
@@ -34,11 +35,17 @@ async def async_setup_entry(
 
     for eid, uid in resolved.zones:
         zp = zone_object_prefix(hass, eid)
+        sensored = zone_has_sensor(hass, eid)
         entities += [
-            ZoneTemperatureSensor(hass, eid, uid, "zone_temperature", object_prefix=zp),
-            ZoneTargetSensor(hass, eid, uid, "zone_target_temperature", object_prefix=zp),
+            ZoneTemperatureSensor(
+                hass, eid, uid, "zone_temperature", has_sensor=sensored, object_prefix=zp
+            ),
             ZoneModeSensor(hass, eid, uid, "zone_mode", object_prefix=zp),
         ]
+        if sensored:  # constant and open/close zones have no setpoint
+            entities.append(
+                ZoneTargetSensor(hass, eid, uid, "zone_target_temperature", object_prefix=zp)
+            )
 
     if resolved.controller:
         ceid, cuid = resolved.controller
@@ -69,6 +76,28 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
+    # Remove sensors this entry no longer creates (e.g. Target temperature on a
+    # constant zone, created by an earlier version)
+    ent_reg = er.async_get(hass)
+    keep = {e.unique_id for e in entities}
+    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if reg_entry.domain == "sensor" and reg_entry.unique_id not in keep:
+            ent_reg.async_remove(reg_entry.entity_id)
+
+
+def zone_has_sensor(hass: HomeAssistant, zone_entity_id: str) -> bool:
+    """True if iZone has a temperature sensor assigned to the zone.
+
+    Core's iZone integration offers Climate (heat_cool) only for zones of type
+    'auto', which are the zones with a sensor. hvac_modes lists the modes the
+    zone *supports*, so it doesn't change when the zone is set to Open or Closed.
+    If the zone's state isn't available yet, assume it has a sensor.
+    """
+    state = hass.states.get(zone_entity_id)
+    if state is None or "hvac_modes" not in state.attributes:
+        return True
+    return any(m in CLIMATE_STATES for m in state.attributes["hvac_modes"])
+
 
 # ---------------------------------------------------------------- temperatures
 
@@ -84,16 +113,32 @@ class _TempSensor(IZoneDerivedEntity, SensorEntity):
 
 
 class ZoneTemperatureSensor(_TempSensor):
-    """Room temperature, with zone_mode attribute (kept for existing dashboards)."""
+    """Room temperature, with zone_mode attribute (kept for existing dashboards).
+
+    Zones without a sensor (constant, open/close) get this entity disabled by
+    default; if someone enables it, it reports 0 while the zone has no reading,
+    rather than unavailable.
+    """
+
+    def __init__(self, hass, source_entity_id, unique_prefix, key, *, has_sensor: bool = True, **kwargs):
+        super().__init__(hass, source_entity_id, unique_prefix, key, **kwargs)
+        self._has_sensor = has_sensor
+        if not has_sensor:
+            self._attr_entity_registry_enabled_default = False
+            # The 0 fallback isn't a measurement: keep it out of long-term statistics
+            self._attr_state_class = None
 
     @property
     def native_value(self) -> float | None:
-        return as_number(self.src_attr("current_temperature"))
+        value = as_number(self.src_attr("current_temperature"))
+        if value is None and not self._has_sensor:
+            return 0.0
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         mode = zone_mode(self.src)
-        return {"zone_mode": mode.title() if mode else None}
+        return {"zone_mode": mode.title() if mode else None, "has_sensor": self._has_sensor}
 
 
 class ZoneTargetSensor(_TempSensor):

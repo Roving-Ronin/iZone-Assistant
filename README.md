@@ -22,8 +22,8 @@ Zones are discovered automatically from your iZone controller: there's nothing t
 
 | Entity | Notes |
 |---|---|
-| Temperature | Room temperature, with a `zone_mode` attribute |
-| Target temperature | Available only when the zone is in Climate mode |
+| Temperature | Room temperature, with a `zone_mode` attribute. Keeps reporting when a sensored zone is set to Open or Closed. For zones without a sensor (constant, open/close) it's disabled by default; if enabled it shows 0 until a reading exists |
+| Target temperature | Zones with a sensor only. Available while the zone is in Climate mode |
 | Zone mode | Closed / Open / Climate |
 | Airflow minimum / maximum | Settable in steps of 5 %, within a per-zone floor and ceiling (default 10–100 %). Minimum can't exceed the current maximum and vice versa |
 

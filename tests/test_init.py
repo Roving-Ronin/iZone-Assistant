@@ -55,7 +55,8 @@ async def _fake_izone(hass: HomeAssistant) -> None:
         hass.states.async_set(
             f"climate.{object_id}", state,
             {"current_temperature": 20.0 + n, "airflow_min": 10, "airflow_max": 90,
-             "zone_index": idx, "friendly_name": name, **attrs},
+             "zone_index": idx, "friendly_name": name,
+             "hvac_modes": ["off", "fan_only", "heat_cool"], **attrs},
         )
 
     hass.states.async_set(
@@ -340,3 +341,70 @@ async def test_zone_switches(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     assert hass.states.get("sensor.izone_lounge_room_zone_mode").state == "open"
+
+
+async def test_constant_zone(hass: HomeAssistant) -> None:
+    """A zone without a sensor: no target, temperature disabled by default and 0 when enabled."""
+    await _fake_izone(hass)
+    izone_entry = hass.config_entries.async_entries("izone")[0]
+    dev = dr.async_get(hass).async_get_or_create(
+        config_entry_id=izone_entry.entry_id, identifiers={("izone", UID, 2)},
+        name="Constant Zone", via_device=("izone", UID),
+    )
+    er.async_get(hass).async_get_or_create(
+        "climate", "izone", f"{UID}_z3", config_entry=izone_entry, device_id=dev.id,
+        suggested_object_id="constant_zone",
+    )
+    hass.states.async_set(
+        "climate.constant_zone", "fan_only",
+        {"hvac_modes": ["off", "fan_only"], "current_temperature": None,
+         "airflow_min": 20, "airflow_max": 100, "zone_index": 2,
+         "friendly_name": "Constant Zone"},
+    )
+    entry = await _setup(hass)
+    ent_reg = er.async_get(hass)
+    ours = _ours(hass)
+    state = hass.states.get
+
+    assert "sensor.izone_constant_zone_target_temperature" not in ours
+    temp = ours["sensor.izone_constant_zone_temperature"]
+    assert temp.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert state("sensor.izone_constant_zone_zone_mode").state == "open"
+    assert state("number.izone_constant_zone_airflow_minimum").state == "20.0"
+    # Sensored zones are unaffected
+    assert ours["sensor.izone_study_temperature"].disabled_by is None
+    assert "sensor.izone_study_target_temperature" in ours
+
+    # A Target temperature left over from an earlier version is removed; enabling
+    # the temperature sensor gives 0 while the zone has no reading
+    ent_reg.async_get_or_create(
+        "sensor", DOMAIN, f"{UID}_z3_zone_target_temperature", config_entry=entry,
+        suggested_object_id="izone_constant_zone_target_temperature",
+    )
+    ent_reg.async_update_entity("sensor.izone_constant_zone_temperature", disabled_by=None)
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert "sensor.izone_constant_zone_target_temperature" not in _ours(hass)
+    assert state("sensor.izone_constant_zone_temperature").state == "0.0"
+    assert state("sensor.izone_constant_zone_temperature").attributes["has_sensor"] is False
+    assert "state_class" not in state("sensor.izone_constant_zone_temperature").attributes
+    assert state("sensor.izone_study_temperature").attributes["state_class"] == "measurement"
+
+    # If a reading appears (sensor fitted later), it's reported
+    hass.states.async_set(
+        "climate.constant_zone", "fan_only",
+        {**state("climate.constant_zone").attributes, "current_temperature": 19.5},
+    )
+    await hass.async_block_till_done()
+    assert state("sensor.izone_constant_zone_temperature").state == "19.5"
+
+
+async def test_sensored_zone_open_keeps_temperature(hass: HomeAssistant) -> None:
+    """A zone with a sensor set to Open: temperature keeps reporting, target unavailable."""
+    await _fake_izone(hass)
+    await _setup(hass)
+    state = hass.states.get
+    # Lounge Room is a sensored zone currently set to Open (fan_only)
+    assert state("sensor.izone_lounge_room_temperature").state == "22.0"
+    assert state("sensor.izone_lounge_room_target_temperature").state == "unavailable"
+    assert state("sensor.izone_lounge_room_zone_mode").state == "open"
