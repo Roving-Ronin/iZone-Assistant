@@ -60,17 +60,15 @@ If you previously built these with YAML template sensors using the same IDs (e.g
 
 ## Installation
 
-The core iZone integration must already be set up.
-
-### HACS or Home Assistant Marketplace
-
-1. Add `https://github.com/Roving-Ronin/iZone-Assistant` as a custom repository of type **Integration** (HACS → ⋮ → Custom repositories, or the equivalent in the Marketplace).
-2. Install **iZone Assistant** and restart Home Assistant.
-3. Settings → Devices & services → Add integration → **iZone Assistant**.
-
-### Manual
-
-Download `izone_assistant.zip` from the [latest release](https://github.com/Roving-Ronin/iZone-Assistant/releases/latest), unzip it into `config/custom_components/izone_assistant/`, and restart.
+1. Make sure the core iZone integration is set up:
+   - [![Add the iZone integration to Home Assistant.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=izone)
+2. Install this integration with HACS (or the Home Assistant Marketplace):
+   - [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Roving-Ronin&repository=iZone-Assistant&category=integration)
+   - Or manually: download `izone_assistant.zip` from the [latest release](https://github.com/Roving-Ronin/iZone-Assistant/releases/latest) and unzip it into `config/custom_components/izone_assistant/`.
+3. Restart Home Assistant.
+4. Start the configuration flow:
+   - [![Start Config Flow](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=izone_assistant)
+   - Or: go to **Settings** → **Devices & services**, click **+ Add Integration**, and select **iZone Assistant** from the list.
 
 ## Requirements
 
