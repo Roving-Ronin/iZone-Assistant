@@ -9,7 +9,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.izone_assistant.const import CONF_OUTDOOR, CONF_ZONES, DOMAIN
+from custom_components.izone_assistant.const import CONF_OUTDOOR, DOMAIN
 
 UID = "000013170"
 
@@ -75,10 +75,10 @@ async def _setup(hass: HomeAssistant, outdoor: str | None = "sensor.goulburn_tem
             result["flow_id"], {"controller": ctrl_id}
         )
     assert result["step_id"] == "zones"
-    zones = next(k.default() for k in result["data_schema"].schema if k == CONF_ZONES)
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_ZONES: zones}
-    )
+    # One on/off switch per zone, labelled with the iZone zone name, all on by default
+    switches = {str(k): k.default() for k in result["data_schema"].schema}
+    assert switches["Study"] is True and switches["Lounge Room"] is True
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["step_id"] == "outdoor"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_OUTDOOR: outdoor} if outdoor else {}
@@ -205,9 +205,10 @@ async def test_airflow_limits_options(hass: HomeAssistant) -> None:
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["step_id"] == "init"
-    zones = next(k.default() for k in result["data_schema"].schema if k == CONF_ZONES)
+    assert [str(k) for k in result["data_schema"].schema] == ["Study", "Lounge Room", CONF_OUTDOOR]
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_ZONES: zones, CONF_OUTDOOR: "sensor.goulburn_temperature"}
+        result["flow_id"],
+        {"Study": True, "Lounge Room": True, CONF_OUTDOOR: "sensor.goulburn_temperature"},
     )
     assert result["step_id"] == "airflow"
     fields = [str(k) for k in result["data_schema"].schema]
@@ -237,7 +238,7 @@ async def test_airflow_limits_options(hass: HomeAssistant) -> None:
     # Re-opening options shows the saved limits as defaults
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_ZONES: zones}
+        result["flow_id"], {CONF_OUTDOOR: "sensor.goulburn_temperature"}
     )
     defaults = {str(k): k.default() for k in result["data_schema"].schema}
     assert defaults["Lounge Room ceiling (%)"] == 90 and defaults["Study floor (%)"] == 20
@@ -304,3 +305,38 @@ async def test_existing_entities_without_device_get_linked(hass: HomeAssistant) 
     device = dr.async_get(hass).async_get(ent_reg.async_get(eid).device_id)
     assert device is not None and device.name == "Study"
     assert hass.states.get(eid).name == "Study Airflow maximum"
+
+
+async def test_zone_switches(hass: HomeAssistant) -> None:
+    """Switching a zone off removes its entities; all off is refused."""
+    await _fake_izone(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    # Every zone off -> error, form shown again
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"Study": False, "Lounge Room": False}
+    )
+    assert result["step_id"] == "zones" and result["errors"] == {"base": "no_zones_enabled"}
+    # Study only
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"Study": True, "Lounge Room": False}
+    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    entry = result["result"]
+    await hass.async_block_till_done()
+    ours = _ours(hass)
+    assert "sensor.izone_study_temperature" in ours
+    assert not any("lounge_room" in eid for eid in ours)
+
+    # Options: switches reflect the saved choice; turning Lounge Room on adds it
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    defaults = {str(k): k.default() for k in result["data_schema"].schema if str(k) != CONF_OUTDOOR}
+    assert defaults == {"Study": True, "Lounge Room": False}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"Study": True, "Lounge Room": True}
+    )
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.izone_lounge_room_zone_mode").state == "open"

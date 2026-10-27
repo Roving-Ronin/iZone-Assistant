@@ -20,6 +20,7 @@ from homeassistant.config_entries import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -28,7 +29,6 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
-    SelectSelectorMode,
 )
 
 from .const import (
@@ -87,18 +87,28 @@ def _label(hass: HomeAssistant, entry: er.RegistryEntry) -> str:
     return entry.name or entry.original_name or entry.entity_id
 
 
-def _zones_field(hass: HomeAssistant, controller_uid: str, default: list[str] | None):
-    zones = _zones(hass, controller_uid)
-    options = [SelectOptionDict(value=z.id, label=_label(hass, z)) for z in zones]
-    return (
-        vol.Required(
-            CONF_ZONES,
-            default=default if default is not None else [z.id for z in zones],
-        ),
-        SelectSelector(
-            SelectSelectorConfig(options=options, multiple=True, mode=SelectSelectorMode.LIST)
-        ),
-    )
+def _zone_switches(
+    hass: HomeAssistant, controller_uid: str, enabled: list[str] | None
+) -> tuple[dict[Any, Any], dict[str, str]]:
+    """One on/off switch per zone, labelled with the zone name from iZone.
+
+    Returns the schema fields and a map of field key -> zone registry id.
+    With enabled=None (first setup) every zone is switched on.
+    """
+    fields: dict[Any, Any] = {}
+    keys: dict[str, str] = {}
+    for zone in _zones(hass, controller_uid):
+        key = _label(hass, zone)
+        while key in keys:  # two zones with the same name
+            key = f"{key} "
+        keys[key] = zone.id
+        on = enabled is None or zone.id in enabled
+        fields[vol.Required(key, default=on)] = BooleanSelector()
+    return fields, keys
+
+
+def _enabled_zones(user_input: dict[str, Any], keys: dict[str, str]) -> list[str]:
+    return [rid for key, rid in keys.items() if user_input.get(key)]
 
 
 def _outdoor_field(current_entity_id: str | None):
@@ -133,6 +143,7 @@ class IZoneAssistantConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._controller: er.RegistryEntry | None = None
         self._zones: list[str] = []
+        self._zone_keys: dict[str, str] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -174,12 +185,20 @@ class IZoneAssistantConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(self._controller.unique_id)
         self._abort_if_unique_id_configured()
 
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self._zones = user_input[CONF_ZONES]
-            return await self.async_step_outdoor()
+            self._zones = _enabled_zones(user_input, self._zone_keys)
+            if self._zones:
+                return await self.async_step_outdoor()
+            errors["base"] = "no_zones_enabled"
 
-        key, selector = _zones_field(self.hass, self._controller.unique_id, None)
-        return self.async_show_form(step_id="zones", data_schema=vol.Schema({key: selector}))
+        fields, self._zone_keys = _zone_switches(
+            self.hass, self._controller.unique_id,
+            self._zones if user_input is not None else None,
+        )
+        return self.async_show_form(
+            step_id="zones", data_schema=vol.Schema(fields), errors=errors
+        )
 
     async def async_step_outdoor(
         self, user_input: dict[str, Any] | None = None
@@ -212,31 +231,38 @@ class IZoneAssistantOptionsFlow(OptionsFlow):
 
     def __init__(self) -> None:
         self._options: dict[str, Any] = {}
+        self._zone_keys: dict[str, str] = {}
         self._limit_fields: dict[str, tuple[str, str]] = {}  # field key -> (zone registry id, "floor"/"ceiling")
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         entry = self.config_entry
-        if user_input is not None:
-            self._options = {
-                CONF_ZONES: user_input[CONF_ZONES],
-                CONF_OUTDOOR: _store_outdoor(self.hass, user_input.get(CONF_OUTDOOR)),
-            }
-            return await self.async_step_airflow()
-
-        zones_key, zones_sel = _zones_field(
-            self.hass,
-            entry.data[CONF_CONTROLLER_UID],
-            entry.options.get(CONF_ZONES, entry.data[CONF_ZONES]),
-        )
+        errors: dict[str, str] = {}
+        enabled = entry.options.get(CONF_ZONES, entry.data[CONF_ZONES])
         current_outdoor = _outdoor_entity_id(
             self.hass, entry.options.get(CONF_OUTDOOR, entry.data.get(CONF_OUTDOOR))
+        )
+
+        if user_input is not None:
+            enabled = _enabled_zones(user_input, self._zone_keys)
+            current_outdoor = user_input.get(CONF_OUTDOOR)
+            if enabled:
+                self._options = {
+                    CONF_ZONES: enabled,
+                    CONF_OUTDOOR: _store_outdoor(self.hass, current_outdoor),
+                }
+                return await self.async_step_airflow()
+            errors["base"] = "no_zones_enabled"
+
+        fields, self._zone_keys = _zone_switches(
+            self.hass, entry.data[CONF_CONTROLLER_UID], enabled
         )
         outdoor_key, outdoor_sel = _outdoor_field(current_outdoor)
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({zones_key: zones_sel, outdoor_key: outdoor_sel}),
+            data_schema=vol.Schema({**fields, outdoor_key: outdoor_sel}),
+            errors=errors,
         )
 
     async def async_step_airflow(

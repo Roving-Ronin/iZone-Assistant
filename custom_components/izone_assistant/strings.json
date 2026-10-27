@@ -10,10 +10,7 @@
       },
       "zones": {
         "title": "Zones",
-        "description": "Zones found on this controller. Untick any you don't want entities for.",
-        "data": {
-          "zones": "Zones"
-        }
+        "description": "iZone - Enable zones that you want to enable:"
       },
       "outdoor": {
         "title": "Outdoor temperature",
@@ -26,6 +23,9 @@
     "abort": {
       "already_configured": "This iZone controller is already set up.",
       "no_controllers": "No iZone controllers found. Set up the iZone integration first."
+    },
+    "error": {
+      "no_zones_enabled": "Enable at least one zone."
     }
   },
   "options": {
@@ -33,9 +33,9 @@
       "init": {
         "title": "iZone Assistant options",
         "data": {
-          "zones": "Zones",
           "outdoor_temperature": "Outdoor temperature source"
-        }
+        },
+        "description": "iZone - Enable zones that you want to enable:"
       },
       "airflow": {
         "title": "Airflow limits",
@@ -43,7 +43,8 @@
       }
     },
     "error": {
-      "floor_not_below_ceiling": "Floor must be lower than ceiling for: {zones}"
+      "floor_not_below_ceiling": "Floor must be lower than ceiling for: {zones}",
+      "no_zones_enabled": "Enable at least one zone."
     }
   },
   "entity": {
