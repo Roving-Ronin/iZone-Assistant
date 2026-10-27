@@ -1,0 +1,34 @@
+{
+  "entity": {
+    "sensor": {
+      "zone_mode": {
+        "default": "mdi:valve",
+        "state": {
+          "closed": "mdi:valve-closed",
+          "open": "mdi:valve-open",
+          "climate": "mdi:thermostat-auto"
+        }
+      },
+      "hvac_mode": {
+        "default": "mdi:hvac",
+        "state": {
+          "off": "mdi:power",
+          "heat": "mdi:fire",
+          "cool": "mdi:snowflake",
+          "heat_cool": "mdi:autorenew",
+          "dry": "mdi:water-percent",
+          "fan_only": "mdi:fan"
+        }
+      },
+      "fan_mode": { "default": "mdi:fan" },
+      "control_zone": { "default": "mdi:target" },
+      "min_set_temperature": { "default": "mdi:thermometer-chevron-down" },
+      "max_set_temperature": { "default": "mdi:thermometer-chevron-up" },
+      "outdoor_temperature": { "default": "mdi:home-thermometer-outline" }
+    },
+    "number": {
+      "airflow_min": { "default": "mdi:fan-chevron-down" },
+      "airflow_max": { "default": "mdi:fan-chevron-up" }
+    }
+  }
+}
