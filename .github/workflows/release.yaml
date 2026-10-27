@@ -1,22 +1,26 @@
 name: Release
 
-# Runs when a GitHub release is published. HACS and the Marketplace install
-# from releases, and the release tag must match manifest.json "version".
+# Runs when a GitHub release is published.
+# 1. Checks the release tag matches manifest.json "version".
+# 2. Builds izone_assistant.zip (the integration folder's contents) and
+#    attaches it to the release. HACS / the Marketplace install from this
+#    zip (hacs.json zip_release), which is what the download badge counts.
 on:
   release:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  check-version:
-    name: Tag matches manifest version
+  release:
+    name: Build and attach izone_assistant.zip
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out the release tag
+        uses: actions/checkout@v5
 
-      - name: Compare release tag with manifest.json version
+      - name: Tag matches manifest.json version
         env:
           TAG: ${{ github.event.release.tag_name }}
         run: |
@@ -27,3 +31,15 @@ jobs:
             echo "::error::Release tag '$TAG' does not match manifest.json version '$manifest_version'. Bump manifest.json before releasing."
             exit 1
           fi
+
+      - name: Build izone_assistant.zip
+        run: |
+          cd custom_components/izone_assistant
+          zip -r -q "$GITHUB_WORKSPACE/izone_assistant.zip" . -x "*/__pycache__/*" "*.pyc"
+          cd "$GITHUB_WORKSPACE"
+          unzip -l izone_assistant.zip
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" izone_assistant.zip --clobber

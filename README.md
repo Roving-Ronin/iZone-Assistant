@@ -1,16 +1,19 @@
-# iZone Assistant
+# <img src="https://brands.home-assistant.io/_/izone/logo.png" alt="iZone" height="40"> iZone Assistant
 
-<img src="custom_components/izone_assistant/brand/icon.png" alt="iZone Assistant icon" width="96" align="right">
+[![release](https://img.shields.io/github/v/release/Roving-Ronin/iZone-Assistant?style=flat-square&color=green)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
+[![downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Roving-Ronin/iZone-Assistant/badges/downloads.json&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange?style=flat-square)](https://hacs.xyz)
+![maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)
+[![commit activity](https://img.shields.io/github/commit-activity/y/Roving-Ronin/iZone-Assistant?style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/commits/main)
+[![license](https://img.shields.io/github/license/Roving-Ronin/iZone-Assistant?style=flat-square)](LICENSE)
+[![Validate](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/validate.yaml?branch=main&label=validate&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/tests.yaml?branch=main&label=tests&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml)
 
-[![Validate](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml/badge.svg)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml)
-[![Tests](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml/badge.svg)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml)
-[![GitHub release](https://img.shields.io/github/v/release/Roving-Ronin/iZone-Assistant)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
+> iZone Assistant extends Home Assistant's [iZone integration](https://www.home-assistant.io/integrations/izone/). It is not affiliated with or endorsed by iZone.
 
 Extra sensors and controls for Home Assistant's built-in [iZone integration](https://www.home-assistant.io/integrations/izone/), without hand-written template sensors.
 
 Zones are discovered automatically from your iZone controller: there's nothing to count or name.
-
-> iZone Assistant extends Home Assistant's [iZone integration](https://www.home-assistant.io/integrations/izone/). It is not affiliated with or endorsed by iZone.
 
 ## What it adds
 
@@ -66,7 +69,7 @@ The core iZone integration must already be set up.
 
 ### Manual
 
-Copy `custom_components/izone_assistant` into your Home Assistant `config/custom_components/` folder and restart.
+Download `izone_assistant.zip` from the [latest release](https://github.com/Roving-Ronin/iZone-Assistant/releases/latest), unzip it into `config/custom_components/izone_assistant/`, and restart.
 
 ## Requirements
 
