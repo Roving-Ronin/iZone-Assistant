@@ -10,6 +10,8 @@ Extra sensors and controls for Home Assistant's built-in [iZone integration](htt
 
 Zones are discovered automatically from your iZone controller: there's nothing to count or name.
 
+> iZone Assistant extends Home Assistant's [iZone integration](https://www.home-assistant.io/integrations/izone/). It is not affiliated with or endorsed by iZone.
+
 ## What it adds
 
 **Per zone** (attached to each iZone zone device)
