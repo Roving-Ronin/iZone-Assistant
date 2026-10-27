@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
@@ -141,17 +142,36 @@ class ZoneTemperatureSensor(_TempSensor):
         return {"zone_mode": mode.title() if mode else None, "has_sensor": self._has_sensor}
 
 
-class ZoneTargetSensor(_TempSensor):
-    """Zone setpoint; only available in Climate mode."""
+class ZoneTargetSensor(_TempSensor, RestoreSensor):
+    """Zone setpoint, shown in every zone mode.
 
-    @property
-    def native_value(self) -> float | None:
+    Core's zone entity only exposes its setpoint ('temperature') while the zone
+    is in Climate mode. While it's Open or Closed this keeps showing the last
+    setpoint seen (also kept across restarts); the 'live' attribute says which.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._last: float | None = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (last := await self.async_get_last_sensor_data()) is not None:
+            self._last = as_number(last.native_value)
+
+    def _live(self) -> float | None:
         return as_number(self.src_attr("temperature"))
 
     @property
-    def available(self) -> bool:
-        state = self.src
-        return super().available and state is not None and state.state in CLIMATE_STATES
+    def native_value(self) -> float | None:
+        if (value := self._live()) is not None:
+            self._last = value
+            return value
+        return self._last
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"live": self._live() is not None}
 
 
 class ControllerTargetSensor(_TempSensor):

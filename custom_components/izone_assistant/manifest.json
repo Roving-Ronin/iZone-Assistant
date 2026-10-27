@@ -9,7 +9,7 @@
     "izone"
   ],
   "documentation": "https://github.com/Roving-Ronin/iZone-Assistant",
-  "integration_type": "helper",
+  "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Roving-Ronin/iZone-Assistant/issues",
   "requirements": [],

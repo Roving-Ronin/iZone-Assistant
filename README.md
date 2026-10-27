@@ -23,7 +23,7 @@ Zones are discovered automatically from your iZone controller: there's nothing t
 | Entity | Notes |
 |---|---|
 | Temperature | Room temperature, with a `zone_mode` attribute. Keeps reporting when a sensored zone is set to Open or Closed. For zones without a sensor (constant, open/close) it's disabled by default; if enabled it shows 0 until a reading exists |
-| Target temperature | Zones with a sensor only. Available while the zone is in Climate mode |
+| Target temperature | Zones with a sensor only, shown in every zone mode. Home Assistant only exposes a zone's setpoint while it's in Climate mode, so while it's Open or Closed this shows the last setpoint seen (attribute `live: false`) |
 | Zone mode | Closed / Open / Climate |
 | Airflow minimum / maximum | Settable in steps of 5 %, within a per-zone floor and ceiling (default 10–100 %). Minimum can't exceed the current maximum and vice versa |
 
@@ -80,7 +80,7 @@ If you previously built these with YAML template sensors using the same IDs (e.g
 - **Zones**: all zones are selected by default; untick any you don't want.
 - **Outdoor temperature**: optional. Pick a temperature sensor (Bureau of Meteorology, Open-Meteo, a local weather station) or a weather entity.
 
-Both can be changed later from the integration's **Configure** button, which also has an **Airflow limits** step: a floor and ceiling (%) per zone for the airflow controls. Match these to the limits set on your iZone wall panel.
+Both can be changed later from **Settings → Devices & services → iZone Assistant → Configure**, which also has an **Airflow limits** step: a floor and ceiling (%) per zone for the airflow controls. Match these to the limits set on your iZone wall panel.
 
 The iZone bridge doesn't report live airflow or damper position, so there is no current-airflow sensor.
 

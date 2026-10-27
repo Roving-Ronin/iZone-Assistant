@@ -158,6 +158,7 @@ class IZoneDerivedEntity(Entity):
         return state is not None and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN)
 
     async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
         self.async_on_remove(
             async_track_state_change_event(self.hass, self._tracked, self._on_change)
         )

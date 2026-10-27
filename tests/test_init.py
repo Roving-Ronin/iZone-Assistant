@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from homeassistant import config_entries
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, State
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    mock_restore_cache_with_extra_data,
+)
 
 from custom_components.izone_assistant.const import CONF_OUTDOOR, DOMAIN
 
@@ -194,10 +197,14 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     assert calls[-1].service == "airflow_max" and calls[-1].data["airflow"] == 80
 
     # Live updates
-    hass.states.async_set("climate.study", "off", {**state("climate.study").attributes})
+    # Like core: a Closed zone no longer exposes its setpoint ('temperature')
+    closed = {k: v for k, v in state("climate.study").attributes.items() if k != "temperature"}
+    hass.states.async_set("climate.study", "off", closed)
     await hass.async_block_till_done()
     assert state("sensor.izone_study_zone_mode").state == "closed"
-    assert state("sensor.izone_study_target_temperature").state == "unavailable"
+    # Setpoint isn't exposed while Closed: the last one seen is kept
+    assert state("sensor.izone_study_target_temperature").state == "21.0"
+    assert state("sensor.izone_study_target_temperature").attributes["live"] is False
 
 
 async def test_airflow_limits_options(hass: HomeAssistant) -> None:
@@ -404,7 +411,34 @@ async def test_sensored_zone_open_keeps_temperature(hass: HomeAssistant) -> None
     await _fake_izone(hass)
     await _setup(hass)
     state = hass.states.get
-    # Lounge Room is a sensored zone currently set to Open (fan_only)
+    # Lounge Room is a sensored zone currently set to Open (fan_only): current
+    # temperature reports; no setpoint has been seen yet, so target is unavailable
     assert state("sensor.izone_lounge_room_temperature").state == "22.0"
     assert state("sensor.izone_lounge_room_target_temperature").state == "unavailable"
-    assert state("sensor.izone_lounge_room_zone_mode").state == "open"
+
+    # Once the zone has been in Climate mode, its setpoint stays shown after Open
+    lounge = "climate.lounge_room"
+    hass.states.async_set(lounge, "heat_cool", {**state(lounge).attributes, "temperature": 20.5})
+    await hass.async_block_till_done()
+    assert state("sensor.izone_lounge_room_target_temperature").state == "20.5"
+    attrs = {k: v for k, v in state(lounge).attributes.items() if k != "temperature"}
+    hass.states.async_set(lounge, "fan_only", attrs)
+    await hass.async_block_till_done()
+    assert state("sensor.izone_lounge_room_target_temperature").state == "20.5"
+    assert state("sensor.izone_lounge_room_temperature").state == "22.0"
+
+
+async def test_target_restored_after_restart(hass: HomeAssistant) -> None:
+    """The last setpoint is restored at startup while the zone is Open."""
+    mock_restore_cache_with_extra_data(
+        hass,
+        [(
+            State("sensor.izone_lounge_room_target_temperature", "19.5"),
+            {"native_value": 19.5, "native_unit_of_measurement": "°C"},
+        )],
+    )
+    await _fake_izone(hass)
+    await _setup(hass)
+    target = hass.states.get("sensor.izone_lounge_room_target_temperature")
+    assert target.state == "19.5" and target.attributes["live"] is False
+    assert hass.states.get("sensor.izone_lounge_room_zone_mode").state == "open"
