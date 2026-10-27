@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CLIMATE_STATES, FAN_MODES, HVAC_MODES, ZONE_MODES
+from .const import FAN_MODES, HVAC_MODES
 from .entity import (
     IZoneDerivedEntity,
     as_number,
@@ -26,6 +26,7 @@ from .entity import (
     zone_mode,
     zone_object_prefix,
 )
+from .zone_control import zone_supports_climate
 
 
 async def async_setup_entry(
@@ -36,13 +37,12 @@ async def async_setup_entry(
 
     for eid, uid in resolved.zones:
         zp = zone_object_prefix(hass, eid)
-        sensored = zone_has_sensor(hass, eid)
-        entities += [
+        sensored = zone_supports_climate(hass, eid)
+        entities.append(
             ZoneTemperatureSensor(
                 hass, eid, uid, "zone_temperature", has_sensor=sensored, object_prefix=zp
-            ),
-            ZoneModeSensor(hass, eid, uid, "zone_mode", object_prefix=zp),
-        ]
+            )
+        )
         if sensored:  # constant and open/close zones have no setpoint
             entities.append(
                 ZoneTargetSensor(hass, eid, uid, "zone_target_temperature", object_prefix=zp)
@@ -84,20 +84,6 @@ async def async_setup_entry(
     for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
         if reg_entry.domain == "sensor" and reg_entry.unique_id not in keep:
             ent_reg.async_remove(reg_entry.entity_id)
-
-
-def zone_has_sensor(hass: HomeAssistant, zone_entity_id: str) -> bool:
-    """True if iZone has a temperature sensor assigned to the zone.
-
-    Core's iZone integration offers Climate (heat_cool) only for zones of type
-    'auto', which are the zones with a sensor. hvac_modes lists the modes the
-    zone *supports*, so it doesn't change when the zone is set to Open or Closed.
-    If the zone's state isn't available yet, assume it has a sensor.
-    """
-    state = hass.states.get(zone_entity_id)
-    if state is None or "hvac_modes" not in state.attributes:
-        return True
-    return any(m in CLIMATE_STATES for m in state.attributes["hvac_modes"])
 
 
 # ---------------------------------------------------------------- temperatures
@@ -248,15 +234,6 @@ class _EnumSensor(IZoneDerivedEntity, SensorEntity):
     def native_value(self) -> str | None:
         value = self._value()
         return value if value in (self._attr_options or []) else None
-
-
-class ZoneModeSensor(_EnumSensor):
-    """closed / open / climate."""
-
-    _attr_options = ZONE_MODES
-
-    def _value(self) -> str | None:
-        return zone_mode(self.src)
 
 
 class HvacModeSensor(_EnumSensor):

@@ -24,7 +24,7 @@ Zones are discovered automatically from your iZone controller: there's nothing t
 |---|---|
 | Temperature | Room temperature, with a `zone_mode` attribute. Keeps reporting when a sensored zone is set to Open or Closed. For zones without a sensor (constant, open/close) it's disabled by default; if enabled it shows 0 until a reading exists |
 | Target temperature | Zones with a sensor only, shown in every zone mode. Home Assistant only exposes a zone's setpoint while it's in Climate mode, so while it's Open or Closed this shows the last setpoint seen (attribute `live: false`) |
-| Zone mode | Closed / Open / Climate |
+| Zone mode (select) | Closed / Open / Climate (Closed / Open for zones without a sensor). Changes only that zone |
 | Airflow minimum / maximum | Settable in steps of 5 %, within a per-zone floor and ceiling (default 10–100 %). Minimum can't exceed the current maximum and vice versa |
 
 **Controller** (attached to the iZone controller device)
@@ -32,6 +32,7 @@ Zones are discovered automatically from your iZone controller: there's nothing t
 | Entity | Notes |
 |---|---|
 | Target temperature | Control zone setpoint, or the unit setpoint when the unit is in control |
+| Control mode (select) | **Local** (sensored zones Climate, others Open: iZone's zones mode), **Master** (all zones Open: the wall controller or return air sensor drives the unit), **Hybrid** (each zone back to the last mode it was given individually), **Closed** (all zones closed except the safety zone) |
 | Control zone | Name of the zone currently controlling the unit, or "Unit setpoint" when the controller reports an index beyond its zones (e.g. 13 or 15). The raw 0-based index is in the `control_zone_index` attribute |
 | Outdoor temperature | Optional, from any temperature sensor or weather entity you choose |
 | HVAC mode *(disabled by default)* | Off / Heat / Cool / Heat/Cool / Dry / Fan only |
@@ -81,6 +82,12 @@ If you previously built these with YAML template sensors using the same IDs (e.g
 - **Outdoor temperature**: optional. Pick a temperature sensor (Bureau of Meteorology, Open-Meteo, a local weather station) or a weather entity.
 
 Both can be changed later from **Settings → Devices & services → iZone Assistant → Configure**, which also has an **Airflow limits** step: a floor and ceiling (%) per zone for the airflow controls. Match these to the limits set on your iZone wall panel.
+
+**Constant zone** (in Configure): detected automatically from the zone iZone names "Constant Zone"; choose another zone, or None, if yours differs.
+
+### Safety zone
+
+So the ducting always has somewhere to push air, one zone is kept open whether the unit is on or off: the constant zone if there is one and it's Open, otherwise the controller's current control zone. **Control mode → Closed** leaves it open, and a zone's own select won't close it if it's the last open zone. Changes made on the wall panel or tablet aren't overridden.
 
 The iZone bridge doesn't report live airflow or damper position, so there is no current-airflow sensor.
 

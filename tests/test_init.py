@@ -116,12 +116,12 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     assert set(ours) == {
         "sensor.izone_study_temperature",
         "sensor.izone_study_target_temperature",
-        "sensor.izone_study_zone_mode",
+        "select.izone_study_zone_mode",
         "number.izone_study_airflow_minimum",
         "number.izone_study_airflow_maximum",
         "sensor.izone_lounge_room_temperature",
         "sensor.izone_lounge_room_target_temperature",
-        "sensor.izone_lounge_room_zone_mode",
+        "select.izone_lounge_room_zone_mode",
         "number.izone_lounge_room_airflow_minimum",
         "number.izone_lounge_room_airflow_maximum",
         "sensor.izone_controller_hvac_mode",
@@ -131,6 +131,7 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
         "sensor.izone_controller_maximum_set_temperature",
         "sensor.izone_controller_control_zone",
         "sensor.izone_controller_outdoor_temperature",
+        "select.izone_controller_control_mode",
     }
 
     # Redundant controller entities are disabled by default; min/max are diagnostic
@@ -150,9 +151,9 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     assert state("sensor.izone_study_temperature").name == "Study Temperature"
     assert state("sensor.izone_study_temperature").attributes["zone_mode"] == "Climate"
     assert state("sensor.izone_study_target_temperature").state == "21.0"
-    assert state("sensor.izone_study_zone_mode").state == "climate"
+    assert state("select.izone_study_zone_mode").state == "climate"
     assert state("sensor.izone_lounge_room_target_temperature").state == "unavailable"
-    assert state("sensor.izone_lounge_room_zone_mode").state == "open"
+    assert state("select.izone_lounge_room_zone_mode").state == "open"
 
     # Controller values (enabled by default)
     assert state("sensor.izone_controller_target_temperature").state == "22.5"
@@ -173,7 +174,7 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     # Entities sit under the existing iZone devices (so they group and get the area)...
     ours = _ours(hass)
     dev_reg = dr.async_get(hass)
-    study_dev = dev_reg.async_get(ours["sensor.izone_study_zone_mode"].device_id)
+    study_dev = dev_reg.async_get(ours["select.izone_study_zone_mode"].device_id)
     assert study_dev.name == "Study"
     assert (
         dev_reg.async_get(ours["sensor.izone_controller_outdoor_temperature"].device_id).name
@@ -201,7 +202,7 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
     closed = {k: v for k, v in state("climate.study").attributes.items() if k != "temperature"}
     hass.states.async_set("climate.study", "off", closed)
     await hass.async_block_till_done()
-    assert state("sensor.izone_study_zone_mode").state == "closed"
+    assert state("select.izone_study_zone_mode").state == "closed"
     # Setpoint isn't exposed while Closed: the last one seen is kept
     assert state("sensor.izone_study_target_temperature").state == "21.0"
     assert state("sensor.izone_study_target_temperature").attributes["live"] is False
@@ -213,7 +214,7 @@ async def test_airflow_limits_options(hass: HomeAssistant) -> None:
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["step_id"] == "init"
-    assert [str(k) for k in result["data_schema"].schema] == ["Study", "Lounge Room", CONF_OUTDOOR]
+    assert [str(k) for k in result["data_schema"].schema] == ["Study", "Lounge Room", CONF_OUTDOOR, "constant_zone"]
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         {"Study": True, "Lounge Room": True, CONF_OUTDOOR: "sensor.goulburn_temperature"},
@@ -262,7 +263,7 @@ async def test_second_controller_gets_serial_prefix(hass: HomeAssistant) -> None
     assert hass.states.get(f"sensor.izone_controller_{UID}_control_zone").state == "Lounge Room"
     assert hass.states.get(f"sensor.izone_controller_{UID}_target_temperature").state == "22.5"
     # Zone IDs are unaffected
-    assert hass.states.get("sensor.izone_study_zone_mode").state == "climate"
+    assert hass.states.get("select.izone_study_zone_mode").state == "climate"
 
 
 async def test_control_zone_and_target_like_real_controller(hass: HomeAssistant) -> None:
@@ -339,7 +340,7 @@ async def test_zone_switches(hass: HomeAssistant) -> None:
 
     # Options: switches reflect the saved choice; turning Lounge Room on adds it
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    defaults = {str(k): k.default() for k in result["data_schema"].schema if str(k) != CONF_OUTDOOR}
+    defaults = {str(k): k.default() for k in result["data_schema"].schema if str(k) not in (CONF_OUTDOOR, "constant_zone")}
     assert defaults == {"Study": True, "Lounge Room": False}
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"Study": True, "Lounge Room": True}
@@ -347,7 +348,7 @@ async def test_zone_switches(hass: HomeAssistant) -> None:
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
-    assert hass.states.get("sensor.izone_lounge_room_zone_mode").state == "open"
+    assert hass.states.get("select.izone_lounge_room_zone_mode").state == "open"
 
 
 async def test_constant_zone(hass: HomeAssistant) -> None:
@@ -376,7 +377,7 @@ async def test_constant_zone(hass: HomeAssistant) -> None:
     assert "sensor.izone_constant_zone_target_temperature" not in ours
     temp = ours["sensor.izone_constant_zone_temperature"]
     assert temp.disabled_by is er.RegistryEntryDisabler.INTEGRATION
-    assert state("sensor.izone_constant_zone_zone_mode").state == "open"
+    assert state("select.izone_constant_zone_zone_mode").state == "open"
     assert state("number.izone_constant_zone_airflow_minimum").state == "20.0"
     # Sensored zones are unaffected
     assert ours["sensor.izone_study_temperature"].disabled_by is None
@@ -441,4 +442,4 @@ async def test_target_restored_after_restart(hass: HomeAssistant) -> None:
     await _setup(hass)
     target = hass.states.get("sensor.izone_lounge_room_target_temperature")
     assert target.state == "19.5" and target.attributes["live"] is False
-    assert hass.states.get("sensor.izone_lounge_room_zone_mode").state == "open"
+    assert hass.states.get("select.izone_lounge_room_zone_mode").state == "open"

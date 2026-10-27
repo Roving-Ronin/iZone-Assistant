@@ -36,11 +36,13 @@ from .const import (
     AIRFLOW_FLOOR,
     AIRFLOW_STEP,
     CONF_AIRFLOW_LIMITS,
+    CONF_CONSTANT_ZONE,
     CONF_CONTROLLER,
     CONF_CONTROLLER_UID,
     CONF_OUTDOOR,
     CONF_ZONES,
     DOMAIN,
+    NO_CONSTANT_ZONE,
 )
 
 AIRFLOW_LIMIT_SELECTOR = NumberSelector(
@@ -109,6 +111,18 @@ def _zone_switches(
 
 def _enabled_zones(user_input: dict[str, Any], keys: dict[str, str]) -> list[str]:
     return [rid for key, rid in keys.items() if user_input.get(key)]
+
+
+def _current_constant_zone(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    """Saved choice, else the auto-detected 'Constant Zone', as a registry id (or 'none')."""
+    from .zone_control import detect_constant_zone
+
+    stored = entry.options.get(CONF_CONSTANT_ZONE)
+    if stored:
+        return stored
+    zones = _zones(hass, entry.data[CONF_CONTROLLER_UID])
+    detected = detect_constant_zone(hass, [z.entity_id for z in zones])
+    return next((z.id for z in zones if z.entity_id == detected), NO_CONSTANT_ZONE)
 
 
 def _outdoor_field(current_entity_id: str | None):
@@ -243,14 +257,17 @@ class IZoneAssistantOptionsFlow(OptionsFlow):
         current_outdoor = _outdoor_entity_id(
             self.hass, entry.options.get(CONF_OUTDOOR, entry.data.get(CONF_OUTDOOR))
         )
+        constant = _current_constant_zone(self.hass, entry)
 
         if user_input is not None:
             enabled = _enabled_zones(user_input, self._zone_keys)
             current_outdoor = user_input.get(CONF_OUTDOOR)
+            constant = user_input.get(CONF_CONSTANT_ZONE, constant)
             if enabled:
                 self._options = {
                     CONF_ZONES: enabled,
                     CONF_OUTDOOR: _store_outdoor(self.hass, current_outdoor),
+                    CONF_CONSTANT_ZONE: constant,
                 }
                 return await self.async_step_airflow()
             errors["base"] = "no_zones_enabled"
@@ -259,9 +276,21 @@ class IZoneAssistantOptionsFlow(OptionsFlow):
             self.hass, entry.data[CONF_CONTROLLER_UID], enabled
         )
         outdoor_key, outdoor_sel = _outdoor_field(current_outdoor)
+        constant_options = [SelectOptionDict(value=NO_CONSTANT_ZONE, label="None")] + [
+            SelectOptionDict(value=z.id, label=_label(self.hass, z))
+            for z in _zones(self.hass, entry.data[CONF_CONTROLLER_UID])
+        ]
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({**fields, outdoor_key: outdoor_sel}),
+            data_schema=vol.Schema(
+                {
+                    **fields,
+                    outdoor_key: outdoor_sel,
+                    vol.Required(CONF_CONSTANT_ZONE, default=constant): SelectSelector(
+                        SelectSelectorConfig(options=constant_options)
+                    ),
+                }
+            ),
             errors=errors,
         )
 

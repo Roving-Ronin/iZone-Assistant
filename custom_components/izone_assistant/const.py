@@ -7,6 +7,8 @@ CONF_CONTROLLER_UID = "controller_uid"  # iZone device uid (controller climate u
 CONF_ZONES = "zones"                    # list of entity registry ids of zone climate entities
 CONF_OUTDOOR = "outdoor_temperature"    # optional temperature sensor or weather entity
 CONF_AIRFLOW_LIMITS = "airflow_limits"  # {zone registry id: [floor, ceiling]}
+CONF_CONSTANT_ZONE = "constant_zone"    # zone registry id, NO_CONSTANT_ZONE, or absent (auto-detect)
+NO_CONSTANT_ZONE = "none"
 
 # Zone climate state -> zone mode
 ZONE_MODE_MAP = {
@@ -36,6 +38,7 @@ OBJECT_SUFFIX = {
     "max_set_temperature": "maximum_set_temperature",
     "control_zone": "control_zone",
     "outdoor_temperature": "outdoor_temperature",
+    "control_mode": "control_mode",
 }
 OBJECT_PREFIX = "izone"
 

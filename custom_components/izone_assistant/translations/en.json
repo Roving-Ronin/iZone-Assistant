@@ -32,9 +32,13 @@
       "init": {
         "title": "iZone Assistant options",
         "data": {
-          "outdoor_temperature": "Outdoor temperature source"
+          "outdoor_temperature": "Outdoor temperature source",
+          "constant_zone": "Constant zone"
         },
-        "description": "iZone - Enable zones that you want to enable:"
+        "description": "iZone - Enable zones that you want to enable:",
+        "data_description": {
+          "constant_zone": "Detected automatically. When it's Open it is the zone kept open for safety; otherwise the control zone is."
+        }
       },
       "airflow": {
         "title": "Airflow limits",
@@ -53,14 +57,6 @@
       },
       "zone_target_temperature": {
         "name": "Target temperature"
-      },
-      "zone_mode": {
-        "name": "Zone mode",
-        "state": {
-          "closed": "Closed",
-          "open": "Open",
-          "climate": "Climate"
-        }
       },
       "hvac_mode": {
         "name": "HVAC mode",
@@ -106,6 +102,33 @@
       "airflow_max": {
         "name": "Airflow maximum"
       }
+    },
+    "select": {
+      "zone_mode": {
+        "name": "Zone mode",
+        "state": {
+          "closed": "Closed",
+          "open": "Open",
+          "climate": "Climate"
+        }
+      },
+      "control_mode": {
+        "name": "Control mode",
+        "state": {
+          "local": "Local",
+          "master": "Master",
+          "hybrid": "Hybrid",
+          "closed": "Closed"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "safety_zone_must_stay_open": {
+      "message": "{zone} must stay open so the ducting always has an open zone."
+    },
+    "no_safety_zone": {
+      "message": "Couldn't find a zone to keep open for safety, so the zones were not all closed."
     }
   }
 }
