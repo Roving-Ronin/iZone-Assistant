@@ -5,9 +5,10 @@
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange?style=flat-square)](https://hacs.xyz)
 ![maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)
 [![commit activity](https://img.shields.io/github/commit-activity/y/Roving-Ronin/iZone-Assistant?style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/commits/main)
-[![license](https://img.shields.io/github/license/Roving-Ronin/iZone-Assistant?style=flat-square)](LICENSE)
 [![Validate](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/validate.yaml?branch=main&label=validate&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/tests.yaml?branch=main&label=tests&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml)
+[![license](https://img.shields.io/github/license/Roving-Ronin/iZone-Assistant?style=flat-square)](LICENSE)
+
 
 > iZone Assistant extends Home Assistant's [iZone integration](https://www.home-assistant.io/integrations/izone/). It is not affiliated with or endorsed by iZone.
 
