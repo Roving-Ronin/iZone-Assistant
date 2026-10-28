@@ -6,6 +6,7 @@ from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import AIRFLOW_CEILING, AIRFLOW_FLOOR, AIRFLOW_STEP
@@ -16,7 +17,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     resolved = resolve_entry(hass, entry)
-    async_add_entities(
+    entities = [
         AirflowNumber(
             hass, eid, uid, kind,
             limits=resolved.airflow_limits[eid],
@@ -24,7 +25,16 @@ async def async_setup_entry(
         )
         for eid, uid in resolved.zones
         for kind in ("min", "max")
-    )
+    ]
+    async_add_entities(entities)
+
+    # Remove numbers this entry no longer creates (e.g. the controller's
+    # Set temperature from v0.5.0, or airflow numbers for zones switched off)
+    ent_reg = er.async_get(hass)
+    keep = {e.unique_id for e in entities}
+    for reg_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if reg_entry.domain == "number" and reg_entry.unique_id not in keep:
+            ent_reg.async_remove(reg_entry.entity_id)
 
 
 class AirflowNumber(IZoneDerivedEntity, NumberEntity):

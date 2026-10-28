@@ -242,3 +242,19 @@ async def test_old_zone_mode_sensors_removed(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     assert ent_reg.async_get("sensor.izone_study_zone_mode") is None
     assert hass.states.get("select.izone_study_zone_mode") is not None
+
+
+async def test_set_temperature_number_removed_on_upgrade(hass: HomeAssistant) -> None:
+    """v0.5.0 created number.izone_controller_set_temperature; later versions remove it."""
+    entry = await _setup_system(hass)
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create(
+        "number", DOMAIN, f"{UID}_set_temperature", config_entry=entry,
+        suggested_object_id="izone_controller_set_temperature",
+    )
+    assert ent_reg.async_get("number.izone_controller_set_temperature") is not None
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert ent_reg.async_get("number.izone_controller_set_temperature") is None
+    # Airflow numbers are kept
+    assert hass.states.get("number.izone_study_airflow_maximum") is not None
