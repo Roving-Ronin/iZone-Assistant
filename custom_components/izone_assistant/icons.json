@@ -34,9 +34,6 @@
       },
       "airflow_max": {
         "default": "mdi:fan-chevron-up"
-      },
-      "set_temperature": {
-        "default": "mdi:thermostat"
       }
     },
     "select": {

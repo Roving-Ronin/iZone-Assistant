@@ -140,8 +140,10 @@ class ZoneControl:
     def mode_of(self, eid: str) -> str | None:
         return zone_mode(self.hass.states.get(eid))
 
-    def control_zone(self) -> str | None:
-        """The zone the controller reports as its control zone (matched by zone_index)."""
+    def safety_zone(self) -> str | None:
+        """The constant zone if it's Open, otherwise the controller's current control zone."""
+        if self.constant_zone and self.mode_of(self.constant_zone) == "open":
+            return self.constant_zone
         if self.controller and (ctrl := self.hass.states.get(self.controller)):
             idx = ctrl.attributes.get("control_zone")
             for eid in self.all_zones:
@@ -149,17 +151,6 @@ class ZoneControl:
                 if state is not None and idx is not None and state.attributes.get("zone_index") == idx:
                     return eid
         return None
-
-    def setpoint_zone(self) -> str | None:
-        """The zone whose target drives the unit: the control zone while it's in Climate."""
-        zone = self.control_zone()
-        return zone if zone is not None and self.mode_of(zone) == "climate" else None
-
-    def safety_zone(self) -> str | None:
-        """The constant zone if it's Open, otherwise the controller's current control zone."""
-        if self.constant_zone and self.mode_of(self.constant_zone) == "open":
-            return self.constant_zone
-        return self.control_zone()
 
     def _any_open(self, modes: dict[str, str | None]) -> bool:
         return any(m in OPEN_MODES for m in modes.values())

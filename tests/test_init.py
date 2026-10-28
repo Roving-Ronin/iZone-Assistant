@@ -132,7 +132,6 @@ async def test_flow_and_entities(hass: HomeAssistant) -> None:
         "sensor.izone_controller_control_zone",
         "sensor.izone_controller_outdoor_temperature",
         "select.izone_controller_control_mode",
-        "number.izone_controller_set_temperature",
     }
 
     # Redundant controller entities are disabled by default; min/max are diagnostic

@@ -101,9 +101,6 @@
       },
       "airflow_max": {
         "name": "Airflow maximum"
-      },
-      "set_temperature": {
-        "name": "Set temperature"
       }
     },
     "select": {

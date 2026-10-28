@@ -39,7 +39,6 @@ OBJECT_SUFFIX = {
     "control_zone": "control_zone",
     "outdoor_temperature": "outdoor_temperature",
     "control_mode": "control_mode",
-    "set_temperature": "set_temperature",
 }
 OBJECT_PREFIX = "izone"
 
