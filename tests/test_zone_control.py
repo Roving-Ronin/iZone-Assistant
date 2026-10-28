@@ -44,6 +44,7 @@ async def _setup_system(hass: HomeAssistant, zones=ZONES) -> MockConfigEntry:
     hass.states.async_set(
         "climate.izone_controller", "cool",
         {"control_zone": 1, "control_zone_setpoint": None, "temp_setpoint": 21,
+         "min_temp": 15, "max_temp": 30,
          "friendly_name": "iZone Controller"},
     )
     for name, idx, modes, state in zones:
@@ -60,7 +61,8 @@ async def _setup_system(hass: HomeAssistant, zones=ZONES) -> MockConfigEntry:
             f"climate.{object_id}", state,
             {"hvac_modes": modes, "zone_index": idx, "friendly_name": name,
              "current_temperature": 20.0 if modes == SENSORED else None,
-             "airflow_min": 10, "airflow_max": 100},
+             "airflow_min": 10, "airflow_max": 100,
+             **({"temperature": 19.5} if state == "heat_cool" else {})},
         )
 
     calls: list[ServiceCall] = []
@@ -72,7 +74,16 @@ async def _setup_system(hass: HomeAssistant, zones=ZONES) -> MockConfigEntry:
         old = hass.states.get(eid)
         hass.states.async_set(eid, call.data["hvac_mode"], dict(old.attributes))
 
+    async def set_temperature(call: ServiceCall) -> None:
+        calls.append(call)
+        eid = call.data["entity_id"]
+        eid = eid[0] if isinstance(eid, list) else eid
+        old = hass.states.get(eid)
+        key = "temp_setpoint" if eid == "climate.izone_controller" else "temperature"
+        hass.states.async_set(eid, old.state, {**old.attributes, key: call.data["temperature"]})
+
     hass.services.async_register("climate", "set_hvac_mode", set_hvac_mode)
+    hass.services.async_register("climate", "set_temperature", set_temperature)
     hass.data["test_calls"] = calls
 
     result = await hass.config_entries.flow.async_init(
@@ -242,3 +253,47 @@ async def test_old_zone_mode_sensors_removed(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     assert ent_reg.async_get("sensor.izone_study_zone_mode") is None
     assert hass.states.get("select.izone_study_zone_mode") is not None
+
+
+async def _set_temp(hass: HomeAssistant, value: float) -> None:
+    await hass.services.async_call(
+        "number", "set_value",
+        {"entity_id": "number.izone_controller_set_temperature", "value": value}, blocking=True,
+    )
+    await hass.async_block_till_done()
+
+
+async def test_set_temperature_follows_control_zone(hass: HomeAssistant) -> None:
+    """Local: writes to the control zone (Kitchen Dining); Master: writes to the unit setpoint."""
+    await _setup_system(hass)
+    num = lambda: hass.states.get("number.izone_controller_set_temperature")
+    calls = hass.data["test_calls"]
+    assert num().name == "iZone Controller Set temperature"
+    assert num().attributes["min"] == 15 and num().attributes["max"] == 30
+    assert num().attributes["step"] == 0.5
+
+    # Kitchen Dining (index 1) is the control zone and in Climate: shows and sets its target
+    assert num().state == "19.5"
+    assert num().attributes["applies_to"] == "climate.kitchen_dining"
+    await _set_temp(hass, 21)
+    assert calls[-1].service == "set_temperature" and calls[-1].data["entity_id"] == "climate.kitchen_dining"
+    assert hass.states.get("climate.kitchen_dining").attributes["temperature"] == 21
+    assert hass.states.get("climate.izone_controller").attributes["temp_setpoint"] == 21  # untouched
+    assert num().state == "21.0"
+
+    # Master: no zone in Climate, so it shows and sets the unit setpoint
+    await _control(hass, "master")
+    assert num().attributes["applies_to"] == "climate.izone_controller"
+    await _set_temp(hass, 23.5)
+    assert calls[-1].data["entity_id"] == "climate.izone_controller"
+    assert hass.states.get("climate.izone_controller").attributes["temp_setpoint"] == 23.5
+    assert num().state == "23.5"
+
+
+async def test_set_temperature_control_zone_not_in_climate(hass: HomeAssistant) -> None:
+    """Control zone set to Open while others are in Climate: falls back to the unit setpoint."""
+    await _setup_system(hass)
+    await _zone(hass, "kitchen_dining", "open")
+    num = hass.states.get("number.izone_controller_set_temperature")
+    assert num.attributes["applies_to"] == "climate.izone_controller"
+    assert num.state == "21.0"

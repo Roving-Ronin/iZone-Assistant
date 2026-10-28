@@ -32,6 +32,7 @@ Zones are discovered automatically from your iZone controller: there's nothing t
 | Entity | Notes |
 |---|---|
 | Target temperature | Control zone setpoint, or the unit setpoint when the unit is in control |
+| Set temperature (number) | Sets the unit's target from one place: while a zone is in control and in Climate (Local / Hybrid) it changes that zone's target, otherwise (Master / Closed) the unit setpoint. The `applies_to` attribute shows which. Use this rather than the iZone controller entity's own target, which the controller overwrites with the control zone's target in zones mode |
 | Control mode (select) | **Local** (sensored zones Climate, others Open: iZone's zones mode), **Master** (all zones Open: the wall controller or return air sensor drives the unit), **Hybrid** (each zone back to the last mode it was given individually), **Closed** (all zones closed except the safety zone) |
 | Control zone | Name of the zone currently controlling the unit, or "Unit setpoint" when the controller reports an index beyond its zones (e.g. 13 or 15). The raw 0-based index is in the `control_zone_index` attribute |
 | Outdoor temperature | Optional, from any temperature sensor or weather entity you choose |
