@@ -1,20 +1,24 @@
 # <img src="https://brands.home-assistant.io/_/izone/logo.png" alt="iZone" height="40"> iZone Assistant
 
-[![release](https://img.shields.io/github/v/release/Roving-Ronin/iZone-Assistant?style=flat-square&color=green)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
-[![downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Roving-Ronin/iZone-Assistant/badges/downloads.json&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/releases)
-[![HACS](https://img.shields.io/badge/HACS-Custom-orange?style=flat-square)](https://hacs.xyz)
-![maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)
-[![commit activity](https://img.shields.io/github/commit-activity/y/Roving-Ronin/iZone-Assistant?style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/commits/main)
-[![Validate](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/validate.yaml?branch=main&label=validate&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml)
-[![Tests](https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/tests.yaml?branch=main&label=tests&style=flat-square)](https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml)
-[![license](https://img.shields.io/github/license/Roving-Ronin/iZone-Assistant?style=flat-square)](LICENSE)
+<!-- [![Home Assistant][ha-version-badge]][ha-url] -->
+[![HACS][hacs-badge]][hacs-url]
+[![release][release-badge]][release-url]
+[![downloads][downloads-badge]][release-url]
+[![stars][repo-stars-badge]][repo-url]
+[![license][license-badge]][license-url]
+[![installs][installs-badge]][installs-url]
 
+[![maintained][maintained-badge]][commits-url]
+[![activity][activity-badge]][commits-url]
+[![Validate][validate-badge]][validate-url]
+[![Tests][tests-badge]][tests-url]
 
-> iZone Assistant extends Home Assistant's [iZone integration](https://www.home-assistant.io/integrations/izone/). It is not affiliated with or endorsed by iZone.
+___
 
-Extra sensors and controls for Home Assistant's built-in [iZone integration](https://www.home-assistant.io/integrations/izone/), without hand-written template sensors.
+> [!NOTE]
+> iZone Assistant is an independent, community-made custom integration. It is **not** affiliated with, endorsed by or supported by iZone or Rinnai, and it isn't part of Home Assistant. Please report problems [here](https://github.com/Roving-Ronin/iZone-Assistant/issues), not to iZone. iZone is a trademark of its owner, used here only to identify compatible equipment.
 
-Zones are discovered automatically from your iZone controller: there's nothing to count or name.
+This integration adds extra sensors and controls for Home Assistant's built-in [iZone integration](https://www.home-assistant.io/integrations/izone/), replacing the need for hand-written yaml template sensors. Zones are discovered automatically from your iZone controller: there's nothing to count or name.
 
 ## What it adds
 
@@ -94,3 +98,39 @@ The iZone bridge doesn't report live airflow or damper position, so there is no 
 ## Releasing (maintainers)
 
 Draft a new GitHub release, create a tag such as `v0.3.0` on `main`, and publish. The release workflow takes the version from the tag, writes it into `manifest.json`, attaches `izone_assistant.zip` to the release, and commits the version back to `main`. There's no need to edit `manifest.json` by hand. Mark betas as a pre-release (e.g. `v0.4.0b1`); they don't change the version on `main`.
+
+
+<!-- Badges -->
+
+[ha-version-badge]: https://img.shields.io/badge/Home%20Assistant-2026.2%2B-blue?style=flat-square&color=%2300c29e&logo=homeassistant&logoColor=white
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-orange?style=flat-square
+[release-badge]: https://img.shields.io/github/v/release/Roving-Ronin/iZone-Assistant?style=flat-square&color=blue&label=Release
+[downloads-badge]: https://img.shields.io/github/downloads/Roving-Ronin/iZone-Assistant/total?style=flat-square&label=Downloads
+[installs-badge]: https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.izone_assistant.total&style=flat-square
+[maintained-badge]: https://img.shields.io/badge/Maintained-yes-brightgreen?style=flat-square
+[activity-badge]: https://img.shields.io/github/commit-activity/y/Roving-Ronin/iZone-Assistant?style=flat-square&label=Commit%20Activity
+[license-badge]: https://img.shields.io/github/license/Roving-Ronin/iZone-Assistant?style=flat-square&label=License
+[repo-stars-badge]: https://img.shields.io/github/stars/Roving-Ronin/iZone-Assistant?style=flat-square&logo=github&label=Repo%20Stars
+[validate-badge]: https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/validate.yaml?branch=main&label=Validate&style=flat-square
+[tests-badge]: https://img.shields.io/github/actions/workflow/status/Roving-Ronin/iZone-Assistant/tests.yaml?branch=main&label=Tests&style=flat-square
+
+<!-- Install buttons -->
+
+[marketplace-button]: https://my.home-assistant.io/badges/marketplace_repository.svg
+[marketplace-url]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=Roving-Ronin&repository=iZone-Assistant
+[hacs-button]: https://my.home-assistant.io/badges/hacs_repository.svg
+[hacs-url]: https://my.home-assistant.io/redirect/hacs_repository/?owner=Roving-Ronin&repository=iZone-Assistant&category=integration
+
+<!-- References -->
+
+[repo-url]: https://github.com/Roving-Ronin/iZone-Assistant
+[release-url]: https://github.com/Roving-Ronin/iZone-Assistant/releases
+[installs-url]: https://analytics.home-assistant.io/custom_integrations.json
+[commits-url]: https://github.com/Roving-Ronin/iZone-Assistant/commits/main
+[validate-url]: https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/validate.yaml
+[tests-url]: https://github.com/Roving-Ronin/iZone-Assistant/actions/workflows/tests.yaml
+[license-url]: https://github.com/Roving-Ronin/iZone-Assistant/blob/main/LICENSE
+[ha-url]: https://www.home-assistant.io/
+
+
+
